@@ -39,7 +39,11 @@ public class AppProcessHost {
         return new AppProcessHost(StringHelper.join(":", apkFilePaths), entryPoint.getName());
     }
     private AppProcessHost(String classPath, String entryCls) throws IOException {
-        process = Runtime.getRuntime().exec("sh");
+        String shell = "sh";
+        try {
+            shell = Shell.isRooted() ? "su" : "sh";
+        } catch (Exception ignored) {}
+        process = Runtime.getRuntime().exec(shell);
         stdout = new DataInputStream((process.getInputStream()));
         callbacks = new HashMap<>();
         stdOutReaderThread = new Thread(() -> {
