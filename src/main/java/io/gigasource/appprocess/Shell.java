@@ -55,6 +55,7 @@ public class Shell {
         }
 
         rootChecked = true;
+        rooted = result;
         return result;
     }
 
