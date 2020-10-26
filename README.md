@@ -16,7 +16,13 @@ public class Example {
     public static void print() throws Exception {
         String publicSourceDir = ""; // (applicationContext instance).getApplicationInfo().publicSourceDir;
         AppProcessHost apHost = AppProcessHost.create(PrintProcess.class, publicSourceDir);
+        
         apHost.send("Hello there");
+
+        // above line of code is a short hand for
+        JsonObject jo = new JsonObject();
+        jo.addProperty("message", "Hello there");
+        apHost.send(jo);
     }
 
     // this example show you how to send json object from parent process to app_process
