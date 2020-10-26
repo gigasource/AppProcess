@@ -32,13 +32,17 @@ public class AppProcessHost {
         String scanSrcDirPath = scanSrcDir.getPath() + "/";
         File[] listOfFiles = scanSrcDir.listFiles();
         List<String> apkFilePaths = new ArrayList<>();
+        String libPath = "";
         for (File file : listOfFiles) {
-            if (file.getName().endsWith("apk"))
+            if (file.getName().endsWith("apk")) {
                 apkFilePaths.add(scanSrcDirPath + file.getName());
+            } else if (file.getName().equals("lib")) {
+                libPath = file.getPath() + (System.getProperty("os.arch").endsWith("64") ? "/arm64" : "/arm");
+            }
         }
-        return new AppProcessHost(StringHelper.join(":", apkFilePaths), entryPoint.getName());
+        return new AppProcessHost(StringHelper.join(":", apkFilePaths), libPath, entryPoint.getName());
     }
-    private AppProcessHost(String classPath, String entryCls) throws IOException {
+    private AppProcessHost(String classPath, String libPath, String entryCls) throws IOException {
         String shell = "sh";
         try {
             shell = Shell.isRooted() ? "su" : "sh";
@@ -73,7 +77,7 @@ public class AppProcessHost {
         stdOutReaderThread.start();
         // input
         stdin = new DataOutputStream(process.getOutputStream());
-        stdin.writeBytes(String.format("app_process -Djava.class.path=%s /system/bin %s\n", classPath, entryCls));
+        stdin.writeBytes(String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls));
     }
     public void send(String message) throws IOException {
         JsonObject payload = new JsonObject();
