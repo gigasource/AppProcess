@@ -48,10 +48,10 @@ public class AppProcessHost {
                     JsonObject response = _readDataFromAppProcess();
                     if (response != null) {
                         String cmdId = response.get(Constants.TRANSMIT_ID).getAsString();
-                        // get and remove response handler from callback collection
                         IResponseHandler handler = callbacks.get(cmdId);
                         callbacks.remove(cmdId);
                         if (handler != null) {
+                            response.remove(Constants.TRANSMIT_ID);
                             handler.handle(response);
                         }
                     }
