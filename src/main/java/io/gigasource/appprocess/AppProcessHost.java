@@ -25,9 +25,6 @@ public class AppProcessHost {
      * @param entryPoint AppProcess entryPoint class (a class which have public static void main(String[] args) and call only AppProcess.start(..) inside it
      */
     public static AppProcessHost create(Class<?> entryPoint, String publicSourceDir) throws Exception {
-        // TODO: simplify app_process creation
-        // the method should only allow entry point class as an only argument
-        // public source dir should be generated somehow
         File scanSrcDir = new File(new File(publicSourceDir).getParent());
         String scanSrcDirPath = scanSrcDir.getPath() + "/";
         File[] listOfFiles = scanSrcDir.listFiles();
@@ -78,6 +75,7 @@ public class AppProcessHost {
         // input
         stdin = new DataOutputStream(process.getOutputStream());
         stdin.writeBytes(String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls));
+        stdin.flush();
     }
     public void send(String message) throws IOException {
         JsonObject payload = new JsonObject();
@@ -108,13 +106,23 @@ public class AppProcessHost {
         });
     }
 
+    private DataOutputStream getWriter() {
+        return stdin;
+    }
+
+    private DataInputStream getReader() {
+        return stdout;
+    }
+
     private void _sendDataToAppProcess(JsonObject data) throws IOException {
         String encodedData = StringHelper._encode(data.toString()) + "\n";
-        stdin.writeBytes(encodedData);
+        DataOutputStream writer = getWriter();
+        writer.writeBytes(encodedData);
+        writer.flush();
     }
 
     private JsonObject _readDataFromAppProcess() throws IOException {
-        String result = StringHelper._decode(stdout.readLine());
+        String result = StringHelper._decode(getReader().readLine());
         if (result.contains(Constants.TRANSMIT_ID)) {
             return StringHelper.toJsonObject(result);
         }
