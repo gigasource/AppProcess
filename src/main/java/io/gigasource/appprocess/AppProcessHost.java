@@ -48,7 +48,7 @@ public class AppProcessHost {
             shell = Shell.isRooted() ? "su" : "sh";
         } catch (Exception ignored) {}
         process = Runtime.getRuntime().exec(shell);
-        stdout = new DataInputStream((process.getInputStream()));
+        stdout = new DataInputStream(process.getInputStream());
         callbacks = new HashMap<>();
         stdOutReaderThread = new Thread(() -> {
             while(true) {
