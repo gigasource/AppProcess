@@ -27,8 +27,7 @@ public class Shell {
                 os.writeBytes("ls /data\n");
                 os.writeBytes("exit\n");
                 os.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             } finally {
                 close(os);
             }
@@ -39,16 +38,15 @@ public class Shell {
                 while (reader.readLine() != null) {
                     n++;
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             } finally {
                 close(reader);
             }
             if (n > 0) {
                 result = true;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignored) {
+
         } finally {
             close(stdout);
             close(stdin);
@@ -63,8 +61,7 @@ public class Shell {
         if (c != null) {
             try {
                 c.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             }
         }
     }
