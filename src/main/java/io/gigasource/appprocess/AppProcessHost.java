@@ -39,12 +39,23 @@ public class AppProcessHost {
         }
         return new AppProcessHost(StringHelper.join(":", apkFilePaths), libPath, entryPoint.getName());
     }
+
+    public List<String> getEnv() {
+        Map<String, String> map = System.getenv();
+        List<String> environment = new ArrayList<>();
+        for (String key : map.keySet()) {
+            environment.add(key + "=" + map.get(key));
+        }
+        return environment;
+    }
+
+
     private AppProcessHost(String classPath, String libPath, String entryCls) throws IOException {
         String shell = "sh";
         try {
             shell = Shell.isRooted() ? "su" : "sh";
         } catch (Exception ignored) {}
-        process = Runtime.getRuntime().exec(shell);
+        process = Runtime.getRuntime().exec(shell, (String[]) getEnv().toArray());
         stdout = new DataInputStream(process.getInputStream());
         callbacks = new HashMap<>();
         stdOutReaderThread = new Thread(() -> {
@@ -105,22 +116,18 @@ public class AppProcessHost {
             process = null;
         });
     }
-
     private DataOutputStream getWriter() {
         return stdin;
     }
-
     private DataInputStream getReader() {
         return stdout;
     }
-
     private void _sendDataToAppProcess(JsonObject data) throws IOException {
         String encodedData = StringHelper._encode(data.toString()) + "\n";
         DataOutputStream writer = getWriter();
         writer.writeBytes(encodedData);
         writer.flush();
     }
-
     private JsonObject _readDataFromAppProcess() throws IOException {
         String result = StringHelper._decode(getReader().readLine());
         if (result.contains(Constants.TRANSMIT_ID)) {
