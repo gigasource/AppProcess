@@ -3,7 +3,6 @@ package io.gigasource.appprocess;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -29,12 +28,12 @@ public class AppProcessHost {
         String scanSrcDirPath = scanSrcDir.getPath() + "/";
         File[] listOfFiles = scanSrcDir.listFiles();
         List<String> apkFilePaths = new ArrayList<>();
-        String libPath = "";
+        String libPath = "/system/lib";
         for (File file : listOfFiles) {
             if (file.getName().endsWith("apk")) {
                 apkFilePaths.add(scanSrcDirPath + file.getName());
             } else if (file.getName().equals("lib")) {
-                libPath = file.getPath() + (System.getProperty("os.arch").endsWith("64") ? "/arm64" : "/arm");
+                libPath += ":" + file.getPath() + (System.getProperty("os.arch").endsWith("64") ? "/arm64" : "/arm");
             }
         }
         return new AppProcessHost(StringHelper.join(":", apkFilePaths), libPath, entryPoint.getName());
@@ -85,7 +84,8 @@ public class AppProcessHost {
         stdOutReaderThread.start();
         // input
         stdin = new DataOutputStream(process.getOutputStream());
-        stdin.writeBytes(String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls));
+        String cmd = String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls);
+        stdin.writeBytes(cmd);
         stdin.flush();
     }
     public void send(String message) throws IOException {

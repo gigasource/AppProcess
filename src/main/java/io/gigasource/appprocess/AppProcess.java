@@ -19,13 +19,12 @@ public class AppProcess {
                 String line = _readDataFromParentProcess();
                 JsonObject payload = StringHelper.toJsonObject(line);
 
-                if (payload.has(Constants.END_SIGNAL)) {
-                    return;
-                }
-
                 if (payload.has(Constants.TRANSMIT_ID)) {
                     String transmitId = payload.get(Constants.TRANSMIT_ID).getAsString();
                     cb.handle(payload, _createResponderWithId(transmitId));
+
+                    if (payload.has(Constants.END_SIGNAL))
+                        System.exit(0);
                 } else {
                     cb.handle(payload, noResponseCb);
                 }
