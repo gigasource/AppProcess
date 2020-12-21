@@ -1,5 +1,10 @@
 # AppProcess
 
+### Prerequisites:
+```
+implementation 'com.google.code.gson:gson:2.8.5'
+```
+
 ### Example
 ```java
 import com.google.gson.JsonObject;
