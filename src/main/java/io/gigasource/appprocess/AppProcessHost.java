@@ -15,6 +15,7 @@ import java.util.UUID;
 public class AppProcessHost {
     private Process process;
     private DataOutputStream stdin;
+
     // Response
     private DataInputStream stdout;
     private Thread stdOutReaderThread;
@@ -66,7 +67,10 @@ public class AppProcessHost {
                     if (response != null) {
                         String cmdId = response.get(Constants.TRANSMIT_ID).getAsString();
                         IResponseHandler handler = callbacks.get(cmdId);
-                        callbacks.remove(cmdId);
+
+                        if (!cmdId.equals(Constants.LOG_ID))
+                            callbacks.remove(cmdId);
+
                         if (handler != null) {
                             response.remove(Constants.TRANSMIT_ID);
                             handler.handle(response);
@@ -120,10 +124,10 @@ public class AppProcessHost {
     public void send(JsonObject payload) throws IOException {
         _sendDataToAppProcess(payload);
     }
-    public void send(JsonObject payload, IResponseHandler callback) throws IOException {
-        String transmitId = UUID.randomUUID().toString();
-        callbacks.put(transmitId, callback);
-        payload.addProperty(Constants.TRANSMIT_ID, transmitId);
+    public void send(JsonObject payload, IResponseHandler sendHandler) throws IOException {
+        String sendId = UUID.randomUUID().toString();
+        callbacks.put(sendId, sendHandler);
+        payload.addProperty(Constants.TRANSMIT_ID, sendId);
         _sendDataToAppProcess(payload);
     }
     public void terminate() {
@@ -158,5 +162,12 @@ public class AppProcessHost {
             return StringHelper.toJsonObject(result);
         }
         return null;
+    }
+    public void registerLog(IAppProcessLogCallback logCallback) {
+        IResponseHandler logHandler = data -> {
+            if (data.has(Constants.LOG_CONTENT) && logCallback != null)
+                logCallback.call(data.get(Constants.LOG_CONTENT).getAsString());
+        };
+        callbacks.put(Constants.LOG_ID, logHandler);
     }
 }

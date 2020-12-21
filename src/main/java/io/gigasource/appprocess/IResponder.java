@@ -18,4 +18,11 @@ public interface IResponder {
      * @param json
      */
     void json(JsonObject json);
+
+
+    /**
+     *
+     * @param content
+     */
+    void log(String content);
 }

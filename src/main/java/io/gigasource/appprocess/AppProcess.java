@@ -14,6 +14,8 @@ public class AppProcess {
             public void json(String json) {}
             @Override
             public void json(JsonObject json) { }
+            @Override
+            public void log(String content) {}
         };
 
         while (true) {
@@ -54,6 +56,14 @@ public class AppProcess {
             public void json(JsonObject json) {
                 json.addProperty(Constants.TRANSMIT_ID, transmitId);
                 _sendDataToParentProcess(json.toString());
+            }
+
+            @Override
+            public void log(String content) {
+                JsonObject log = new JsonObject();
+                log.addProperty(Constants.TRANSMIT_ID, Constants.LOG_ID);
+                log.addProperty(Constants.LOG_CONTENT, content);
+                _sendDataToParentProcess(log.toString());
             }
         };
     }
