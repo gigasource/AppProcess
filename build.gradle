@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'io.gigasource.appprocess'
-version '1.0.10'
+version '1.0.11'
 
 sourceCompatibility = 1.8
 
@@ -14,6 +14,8 @@ repositories {
 }
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    // testCompile group: 'junit', name: 'junit', version: '4.12'
+    // Required for local unit tests (JUnit 4 framework)
+    testImplementation 'junit:junit:4.12'
     implementation 'com.google.code.gson:gson:2.8.5'
 }

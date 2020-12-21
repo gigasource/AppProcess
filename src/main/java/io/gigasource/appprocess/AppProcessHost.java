@@ -1,13 +1,16 @@
 package io.gigasource.appprocess;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class AppProcessHost {
     private Process process;
@@ -15,8 +18,8 @@ public class AppProcessHost {
     // Response
     private DataInputStream stdout;
     private Thread stdOutReaderThread;
-    private HashMap<String, IResponseHandler> callbacks;
-    private static final JsonParser _parser = new JsonParser();
+    private final HashMap<String, IResponseHandler> callbacks;
+    private Thread _keepAliveThread;
 
     /**
      * Create AppProcessHost process with specified entry point
@@ -47,7 +50,6 @@ public class AppProcessHost {
         }
         return environment;
     }
-
 
     private AppProcessHost(String classPath, String libPath, String entryCls) throws IOException {
         String shell = "sh";
@@ -87,7 +89,29 @@ public class AppProcessHost {
         String cmd = String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls);
         stdin.writeBytes(cmd);
         stdin.flush();
+        _keepAppProcessAlive();
     }
+
+    private void _keepAppProcessAlive() {
+        _keepAliveThread = new Thread(() -> {
+            while(true) {
+                try {
+                    JsonObject payload = new JsonObject();
+                    payload.addProperty(Constants.PING_ID, "");
+                    _sendDataToAppProcess(payload);
+                    try { Thread.sleep(Constants.PING_INTERVAL_IN_MILLI_SECONDS); }
+                    catch (InterruptedException ignored) {}
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    try { Thread.sleep(100); }
+                    catch (InterruptedException ignored) {}
+                }
+            }
+        });
+
+        _keepAliveThread.start();
+    }
+
     public void send(String message) throws IOException {
         JsonObject payload = new JsonObject();
         payload.addProperty("message", message);
@@ -102,19 +126,19 @@ public class AppProcessHost {
         payload.addProperty(Constants.TRANSMIT_ID, transmitId);
         _sendDataToAppProcess(payload);
     }
-    public void terminate() throws IOException {
-        JsonObject endSignal = new JsonObject();
-        endSignal.addProperty(Constants.END_SIGNAL, "");
-        send(endSignal, (res) -> {
-            if (stdOutReaderThread != null && !stdOutReaderThread.isInterrupted()) {
-                stdOutReaderThread.interrupt();
-                stdOutReaderThread = null;
-            }
-            stdout = null;
-            stdin = null;
-            process.destroy();
-            process = null;
-        });
+    public void terminate() {
+        if (_keepAliveThread != null) {
+            _keepAliveThread.interrupt();
+        }
+
+        if (stdOutReaderThread != null && !stdOutReaderThread.isInterrupted()) {
+            stdOutReaderThread.interrupt();
+            stdOutReaderThread = null;
+        }
+        stdout = null;
+        stdin = null;
+        process.destroy();
+        process = null;
     }
     private DataOutputStream getWriter() {
         return stdin;
