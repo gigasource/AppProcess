@@ -45,12 +45,14 @@ public class Example {
 class PrintProcess {
     public static void main(String[] args) {
         AppProcess.start((payload, res) -> {
-            // plain string in app_process_host will be store in "message" prop of payload
-            String message = payload.get("message").getAsString();
-            // do something with message
-
-            // in Example.print apHost.send get called without callback
-            // calling res.json(data) in this method doesn't have any meaning
+            if (payload.has("message")) {
+                // plain string in app_process_host will be store in "message" prop of payload
+                String message = payload.get("message").getAsString();
+                // do something with message
+             
+                // in Example.print apHost.send get called without callback
+                // calling res.json(data) in this method doesn't have any meaning   
+            }
         });
     }
 }
@@ -59,12 +61,14 @@ class PrintProcess {
 class EchoProcess {
     public static void main(String[] args) {
         AppProcess.start((payload, res) -> {
-            String name = payload.get("name").getAsString();
-            JsonObject jo = new JsonObject();
-            jo.addProperty("echo", "Echo: " + name);
-
-            // calling res.json return json object to parent process
-            res.json(jo);
+            if (payload.has("name")) {
+                String name = payload.get("name").getAsString();
+                JsonObject jo = new JsonObject();
+                jo.addProperty("echo", "Echo: " + name);
+                
+                // calling res.json return json object to parent process
+                res.json(jo);   
+            }
         });
     }
 }
