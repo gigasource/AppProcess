@@ -37,6 +37,7 @@ public class Example {
         AppProcessHost apHost = AppProcessHost.create(EchoProcess.class, publicSourceDir);
         JsonObject jo = new JsonObject();
         jo.addProperty("name", "Joey");
+        apHost.registerLog(/*String*/ s -> { /* do something with log contenr */ });
         apHost.send(jo, (res) -> {
             if (res.has("echo")) {
                 String echoMessage = res.get("echo").getAsString();
