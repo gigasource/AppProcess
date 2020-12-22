@@ -30,8 +30,12 @@ public class AppProcess {
                     if (_starver == null)
                         _starver = new AppStarve(
                             (int) (Constants.PING_INTERVAL_IN_MILLI_SECONDS * 1.5),
-                            () -> System.exit(0));
+                            () -> {
+                                if (Constants.AUTO_KILL_APP_PROCESS)
+                                    System.exit(0);
+                            });
                     _starver.getFeed();
+                    try { Thread.sleep(50); } catch (InterruptedException e) { e.printStackTrace(); }
                     continue;
                 }
 
@@ -41,6 +45,12 @@ public class AppProcess {
                 } else {
                     cb.handle(payload, noResponseCb);
                 }
+            }
+
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }

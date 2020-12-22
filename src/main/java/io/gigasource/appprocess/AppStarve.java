@@ -1,7 +1,6 @@
 package io.gigasource.appprocess;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.Date;
 
 public class AppStarve {
   public interface OnDieCallback{
@@ -9,16 +8,17 @@ public class AppStarve {
   }
 
   private OnDieCallback _dieCallback;
-  private LocalDateTime _lastFeedTime;
+  private Date _lastFeedTime;
 
   public AppStarve(int hungryDurationInMs, OnDieCallback dieCallback) {
     _dieCallback = dieCallback;
-    _lastFeedTime = LocalDateTime.now();
+    _lastFeedTime = new Date();
 
     new Thread(() -> {
       while(true) {
-        LocalDateTime now = LocalDateTime.now();
-        if (ChronoUnit.MILLIS.between(_lastFeedTime, now) > hungryDurationInMs)
+        Date now = new Date();
+        int seconds = (int) (now.getTime() - _lastFeedTime.getTime())/1000;
+        if (seconds > hungryDurationInMs)
           if (_dieCallback != null)
             _dieCallback.die();
 
@@ -32,6 +32,6 @@ public class AppStarve {
   }
 
   public void getFeed() {
-    _lastFeedTime = LocalDateTime.now();
+    _lastFeedTime = new Date();
   }
 }
