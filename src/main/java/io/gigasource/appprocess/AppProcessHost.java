@@ -53,95 +53,84 @@ public class AppProcessHost {
 
     private AppProcessHost(String classPath, String libPath, String entryCls) throws IOException {
         String shell = "sh";
-        try {
-            shell = Shell.isRooted() ? "su" : "sh";
-        } catch (Exception ignored) {}
+        try { shell = Shell.isRooted() ? "su" : "sh"; } catch (Exception ignored) {}
         process = Runtime.getRuntime().exec(shell, getEnv().toArray(new String[0]));
         stdout = new DataInputStream(process.getInputStream());
+        stdin = new DataOutputStream(process.getOutputStream());
+        //
         callbacks = new HashMap<>();
         stdOutReaderThread = new Thread(() -> {
             while(true) {
-                try {
-                    JsonObject response = _readDataFromAppProcess();
-                    if (response != null) {
-                        String cmdId = response.get(Constants.TRANSMIT_ID).getAsString();
-                        IResponseHandler handler = callbacks.get(cmdId);
-
-                        if (!cmdId.equals(Constants.LOG_ID))
-                            callbacks.remove(cmdId);
-
-                        if (handler != null) {
-                            response.remove(Constants.TRANSMIT_ID);
-                            handler.handle(response);
-                        }
+                JsonObject response = _readDataFromAppProcess();
+                if (response != null && response.has(Constants.TRANSMIT_ID)) {
+                    String cmdId = response.get(Constants.TRANSMIT_ID).getAsString();
+                    IResponseHandler handler = callbacks.get(cmdId);
+                    if (!cmdId.equals(Constants.LOG_ID))
+                        callbacks.remove(cmdId);
+                    if (handler != null) {
+                        response.remove(Constants.TRANSMIT_ID);
+                        handler.handle(response); // exception should be handle in user-code
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
 
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                try { Thread.sleep(200); } catch (InterruptedException ignored) { }
             }
         });
         stdOutReaderThread.start();
-        // input
-        stdin = new DataOutputStream(process.getOutputStream());
-        String cmd = String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls);
-        stdin.writeBytes(cmd);
-        stdin.flush();
+        //
+        try {
+            String cmd = String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls);
+            stdin.writeBytes(cmd);
+            stdin.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         _keepAppProcessAlive();
     }
 
     private void _keepAppProcessAlive() {
         _keepAliveThread = new Thread(() -> {
             while(true) {
-                try {
-                    JsonObject payload = new JsonObject();
-                    payload.addProperty(Constants.PING_ID, "");
-                    _sendDataToAppProcess(payload);
-                    try { Thread.sleep(Constants.PING_INTERVAL_IN_MILLI_SECONDS); }
-                    catch (InterruptedException ignored) {}
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    try { Thread.sleep(100); }
-                    catch (InterruptedException ignored) {}
-                }
+                JsonObject payload = new JsonObject();
+                payload.addProperty(Constants.PING_ID, "");
+                _sendDataToAppProcess(payload);
+                try { Thread.sleep(Constants.PING_INTERVAL_IN_MILLI_SECONDS); }
+                catch (InterruptedException ignored) {}
             }
         });
-
         _keepAliveThread.start();
     }
 
-    public void send(String message) throws IOException {
+    public void send(String message) {
         JsonObject payload = new JsonObject();
         payload.addProperty("message", message);
         _sendDataToAppProcess(payload);
     }
-    public void send(JsonObject payload) throws IOException {
+    public void send(JsonObject payload) {
         _sendDataToAppProcess(payload);
     }
-    public void send(JsonObject payload, IResponseHandler sendHandler) throws IOException {
+    public void send(JsonObject payload, IResponseHandler sendHandler) {
         String sendId = UUID.randomUUID().toString();
         callbacks.put(sendId, sendHandler);
         payload.addProperty(Constants.TRANSMIT_ID, sendId);
         _sendDataToAppProcess(payload);
     }
     public void terminate() {
-        if (_keepAliveThread != null) {
-            _keepAliveThread.interrupt();
+        try {
+            if (_keepAliveThread != null) {
+                _keepAliveThread.interrupt();
+            }
+            if (stdOutReaderThread != null && !stdOutReaderThread.isInterrupted()) {
+                stdOutReaderThread.interrupt();
+                stdOutReaderThread = null;
+            }
+            stdout = null;
+            stdin = null;
+            process.destroy();
+            process = null;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        if (stdOutReaderThread != null && !stdOutReaderThread.isInterrupted()) {
-            stdOutReaderThread.interrupt();
-            stdOutReaderThread = null;
-        }
-        stdout = null;
-        stdin = null;
-        process.destroy();
-        process = null;
     }
     private DataOutputStream getWriter() {
         return stdin;
@@ -149,16 +138,29 @@ public class AppProcessHost {
     private DataInputStream getReader() {
         return stdout;
     }
-    private void _sendDataToAppProcess(JsonObject data) throws IOException {
-        String encodedData = StringHelper._encode(data.toString()) + "\n";
-        DataOutputStream writer = getWriter();
-        writer.writeBytes(encodedData);
-        writer.flush();
+    private void _sendDataToAppProcess(JsonObject data) {
+        try {
+            String encodedData = StringHelper._encode(data.toString()) + "\n";
+            DataOutputStream writer = getWriter();
+            if (writer != null) {
+                writer.writeBytes(encodedData);
+                writer.flush();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-    private JsonObject _readDataFromAppProcess() throws IOException {
-        String result = StringHelper._decode(getReader().readLine());
-        if (result.contains(Constants.TRANSMIT_ID)) {
-            return StringHelper.toJsonObject(result);
+    private JsonObject _readDataFromAppProcess() {
+        try {
+            DataInputStream reader = getReader();
+            if (reader != null) {
+                String result = StringHelper._decode(reader.readLine());
+                if (result.contains(Constants.TRANSMIT_ID)) {
+                    return StringHelper.toJsonObject(result);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
