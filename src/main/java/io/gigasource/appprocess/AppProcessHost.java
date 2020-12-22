@@ -13,11 +13,10 @@ import java.util.Map;
 import java.util.UUID;
 
 public class AppProcessHost {
-    private Process process;
-    private DataOutputStream stdin;
-
-    // Response
-    private DataInputStream stdout;
+    public Process process;
+    public DataOutputStream stdin;
+    public DataInputStream stdout;
+    //
     private Thread stdOutReaderThread;
     private final HashMap<String, IResponseHandler> callbacks;
     private Thread _keepAliveThread;
