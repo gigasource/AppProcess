@@ -18,7 +18,7 @@ public class AppStarveTest extends TestCase {
   public void test2() throws InterruptedException {
     AtomicBoolean died = new AtomicBoolean(false);
     AppStarve appStarve = new AppStarve(500, () -> died.set(true));
-    Thread.sleep(600);
+    Thread.sleep(400);
     appStarve.getFeed();
     assertFalse(died.get());
   }
