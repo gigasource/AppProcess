@@ -27,6 +27,10 @@ public class AppProcessHost {
      * @param entryPoint AppProcess entryPoint class (a class which have public static void main(String[] args) and call only AppProcess.start(..) inside it
      */
     public static AppProcessHost create(Class<?> entryPoint, String publicSourceDir) throws Exception {
+        return create(entryPoint, publicSourceDir, Constants.PING_INTERVAL_IN_MILLI_SECONDS);
+    }
+
+    public static AppProcessHost create(Class<?> entryPoint, String publicSourceDir, int pingIntervalInMs) throws Exception {
         File scanSrcDir = new File(new File(publicSourceDir).getParent());
         String scanSrcDirPath = scanSrcDir.getPath() + "/";
         File[] listOfFiles = scanSrcDir.listFiles();
@@ -39,7 +43,7 @@ public class AppProcessHost {
                 libPath += ":" + file.getPath() + (System.getProperty("os.arch").endsWith("64") ? "/arm64" : "/arm");
             }
         }
-        return new AppProcessHost(StringHelper.join(":", apkFilePaths), libPath, entryPoint.getName());
+        return new AppProcessHost(StringHelper.join(":", apkFilePaths), libPath, entryPoint.getName(), pingIntervalInMs);
     }
 
     public List<String> getEnv() {
@@ -51,7 +55,7 @@ public class AppProcessHost {
         return environment;
     }
 
-    private AppProcessHost(String classPath, String libPath, String entryCls) throws IOException {
+    private AppProcessHost(String classPath, String libPath, String entryCls, int pingIntervalInMs) throws IOException {
         String shell = "sh";
         try { shell = Shell.isRooted() ? "su" : "sh"; } catch (Exception ignored) {}
         process = Runtime.getRuntime().exec(shell, getEnv().toArray(new String[0]));
@@ -85,16 +89,16 @@ public class AppProcessHost {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        _keepAppProcessAlive();
+        _keepAppProcessAlive(pingIntervalInMs);
     }
 
-    private void _keepAppProcessAlive() {
+    private void _keepAppProcessAlive(int pingIntervalInMs) {
         _keepAliveThread = new Thread(() -> {
             while(true) {
                 JsonObject payload = new JsonObject();
                 payload.addProperty(Constants.PING_ID, "");
                 _sendDataToAppProcess(payload);
-                try { Thread.sleep(Constants.PING_INTERVAL_IN_MILLI_SECONDS); }
+                try { Thread.sleep(pingIntervalInMs); }
                 catch (InterruptedException ignored) {}
             }
         });
