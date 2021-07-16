@@ -22,11 +22,7 @@ public class AppStarve {
           if (_dieCallback != null)
             _dieCallback.die();
 
-        try {
-          Thread.sleep(hungryDurationInMs);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+        ThreadSafe.sleep(hungryDurationInMs);
       }
     }).start();
   }

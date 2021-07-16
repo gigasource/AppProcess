@@ -27,15 +27,16 @@ public class AppProcess {
                 // we'll create starve-r with a hungry duration
                 // if we don't feed he/she in hungry time, he/she will die and this process will be kill.
                 if (payload.has(Constants.PING_ID)) {
+                    int interval = payload.get(Constants.PING_ID).getAsInt();
                     if (_starver == null)
                         _starver = new AppStarve(
-                            (int) (Constants.PING_INTERVAL_IN_MILLI_SECONDS * 1.5),
+                            (int) (interval * 1.5),
                             () -> {
                                 if (Constants.AUTO_KILL_APP_PROCESS)
                                     System.exit(0);
                             });
                     _starver.getFeed();
-                    try { Thread.sleep(50); } catch (InterruptedException e) { e.printStackTrace(); }
+                    ThreadSafe.sleep(50);
                     continue;
                 }
 
@@ -47,11 +48,7 @@ public class AppProcess {
                 }
             }
 
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            ThreadSafe.sleep(50);
         }
     }
 

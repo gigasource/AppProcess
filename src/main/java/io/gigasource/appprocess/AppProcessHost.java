@@ -77,7 +77,7 @@ public class AppProcessHost {
                     }
                 }
 
-                try { Thread.sleep(200); } catch (InterruptedException ignored) { }
+                ThreadSafe.sleep(200);
             }
         });
         stdOutReaderThread.start();
@@ -96,10 +96,9 @@ public class AppProcessHost {
         _keepAliveThread = new Thread(() -> {
             while(true) {
                 JsonObject payload = new JsonObject();
-                payload.addProperty(Constants.PING_ID, "");
+                payload.addProperty(Constants.PING_ID, pingIntervalInMs);
                 _sendDataToAppProcess(payload);
-                try { Thread.sleep(pingIntervalInMs); }
-                catch (InterruptedException ignored) {}
+                ThreadSafe.sleep(pingIntervalInMs);
             }
         });
         _keepAliveThread.start();
