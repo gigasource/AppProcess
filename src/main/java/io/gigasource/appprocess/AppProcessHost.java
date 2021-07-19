@@ -89,7 +89,9 @@ public class AppProcessHost {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        _keepAppProcessAlive(pingIntervalInMs);
+
+        if (pingIntervalInMs != Constants.PING_INTERVAL_DO_NOT_KILL)
+            _keepAppProcessAlive(pingIntervalInMs);
     }
 
     private void _keepAppProcessAlive(int pingIntervalInMs) {
