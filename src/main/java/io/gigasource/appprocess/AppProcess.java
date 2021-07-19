@@ -20,31 +20,37 @@ public class AppProcess {
 
         while (true) {
             if (_scanner.hasNextLine()) {
-                String line = _readDataFromParentProcess();
-                JsonObject payload = StringHelper.toJsonObject(line);
+                try {
+                    String line = _readDataFromParentProcess();
+                    JsonObject payload = StringHelper.toJsonObject(line);
 
-                // in the 1st time app process received ping message
-                // we'll create starve-r with a hungry duration
-                // if we don't feed he/she in hungry time, he/she will die and this process will be kill.
-                if (payload.has(Constants.PING_ID)) {
-                    int interval = payload.get(Constants.PING_ID).getAsInt();
-                    if (_starver == null)
-                        _starver = new AppStarve(
-                            (int) (interval * 1.5),
-                            () -> {
-                                if (Constants.AUTO_KILL_APP_PROCESS)
-                                    System.exit(0);
-                            });
-                    _starver.getFeed();
-                    ThreadSafe.sleep(50);
-                    continue;
-                }
+                    // in the 1st time app process received ping message
+                    // we'll create starve-r with a hungry duration
+                    // if we don't feed he/she in hungry time, he/she will die and this process will be kill.
+                    if (payload.has(Constants.PING_ID)) {
+                        int interval = payload.get(Constants.PING_ID).getAsInt();
+                        if (interval != Constants.PING_INTERVAL_DO_NOT_KILL) {
+                            if (_starver == null)
+                                _starver = new AppStarve(
+                                    (int) (interval * 1.5),
+                                    () -> {
+                                        if (Constants.AUTO_KILL_APP_PROCESS)
+                                            System.exit(0);
+                                    });
+                            _starver.getFeed();
+                            ThreadSafe.sleep(50);
+                            continue;
+                        }
+                    }
 
-                if (payload.has(Constants.TRANSMIT_ID)) {
-                    String transmitId = payload.get(Constants.TRANSMIT_ID).getAsString();
-                    cb.handle(payload, _createResponderWithId(transmitId));
-                } else {
-                    cb.handle(payload, noResponseCb);
+                    if (payload.has(Constants.TRANSMIT_ID)) {
+                        String transmitId = payload.get(Constants.TRANSMIT_ID).getAsString();
+                        cb.handle(payload, _createResponderWithId(transmitId));
+                    } else {
+                        cb.handle(payload, noResponseCb);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
 
