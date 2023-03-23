@@ -56,9 +56,14 @@ public class AppProcessHost {
     }
 
     private AppProcessHost(String classPath, String libPath, String entryCls, int pingIntervalInMs) throws IOException {
-        String shell = "sh";
-        try { shell = Shell.isRooted() ? "su" : "sh"; } catch (Exception ignored) {}
-        process = Runtime.getRuntime().exec(shell, getEnv().toArray(new String[0]));
+        String cmd = String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls);
+        String shellCmd;
+        if (Shell.executeMode == ShellExecuteMode.AUTO) {
+            shellCmd = Shell.isRooted() ? "su" : "sh";
+        } else {
+            shellCmd = Shell.executeMode == ShellExecuteMode.USER ? "sh" : String.format("su -c \"%s\"", cmd);
+        }
+        process = Runtime.getRuntime().exec(shellCmd, getEnv().toArray(new String[0]));
         stdout = new DataInputStream(process.getInputStream());
         stdin = new DataOutputStream(process.getOutputStream());
         //
@@ -83,9 +88,10 @@ public class AppProcessHost {
         stdOutReaderThread.start();
         //
         try {
-            String cmd = String.format("app_process -Djava.class.path=%s -Djava.library.path=%s /system/bin %s\n", classPath, libPath, entryCls);
-            stdin.writeBytes(cmd);
-            stdin.flush();
+            if (Shell.executeMode == ShellExecuteMode.AUTO || Shell.executeMode == ShellExecuteMode.USER) {
+                stdin.writeBytes(cmd);
+                stdin.flush();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

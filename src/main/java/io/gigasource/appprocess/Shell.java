@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.*;
 
 public class Shell {
+    public static int executeMode = ShellExecuteMode.AUTO;
     private static boolean rootChecked = false;
     private static boolean rooted = false;
     /**
@@ -64,6 +65,29 @@ public class Shell {
                 c.close();
             } catch (IOException ignored) {
             }
+        }
+    }
+
+    public static void execute(String cmd) {
+        Process p = null;
+        DataOutputStream dos;
+        String shellCmd;
+        if (executeMode == ShellExecuteMode.AUTO) {
+            shellCmd = isRooted() ? "su" : "sh";
+        } else {
+            shellCmd = executeMode == ShellExecuteMode.USER ? "sh" : String.format("su -c \"%s\"", cmd);
+        }
+        try {
+            p = Runtime.getRuntime().exec(shellCmd);
+            dos = new DataOutputStream(p.getOutputStream());
+            if (executeMode == ShellExecuteMode.AUTO || executeMode == ShellExecuteMode.USER)
+                dos.writeBytes(String.format("%s\n", cmd));
+            dos.writeBytes("exit\n");
+            dos.flush();
+            dos.close();
+            p.waitFor();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
